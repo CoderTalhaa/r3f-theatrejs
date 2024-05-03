@@ -1,99 +1,113 @@
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
+  CameraControls,
   Environment,
-  Html,
-  Scroll,
-  ScrollControls,
+  Loader,
   Stars,
-  useScroll,
+  Text,
 } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { getProject, val } from "@theatre/core";
-import {
-  editable as e,
-  PerspectiveCamera,
-  useCurrentSheet,
-  SheetProvider,
-} from "@theatre/r3f";
-import { Model } from "./components/Model";
+import CameraLogger from "./helper/Cameralogger.jsx";
 import { Experience } from "./components/Experience";
-
-import flyThroughState from "./fly.json";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import * as THREE from "three";
 
 function App() {
-  const sheet = getProject("Fly Through", { state: flyThroughState }).sheet(
-    "Scene"
-  );
+  const [click, setClick] = useState(false);
+  const cameraRef = useRef();
+
+  useGSAP(() => {
+    const padding = click ? "0" : "5rem";
+
+    gsap.to(".cont", {
+      padding: padding,
+      duration: 2,
+      ease: "power2.out",
+    });
+  }, [click]);
+
+  useEffect(() => {
+    const targetPosition = new THREE.Vector3(0, 0, 0);
+    if (click) {
+      cameraRef.current.setLookAt(
+        -3.18,
+        3,
+        -8,
+        targetPosition.x,
+        targetPosition.y,
+        targetPosition.z,
+        true
+      );
+    } else {
+      cameraRef.current.setLookAt(-6.18, 4.6, -16, 0, 0, 0, true);
+    }
+  }, [click]);
+
+  function handleClick() {
+    setClick((prev) => !prev);
+  }
 
   return (
     <>
-      <Canvas shadows gl={{ preserveDrawingBuffer: true }}>
-        <color attach="background" args={[0x000]} />
-        <fog attach="fog" args={[0x874ccc, 10, 60]} />
-        <Stars
-          radius={100}
-          depth={50}
-          count={5000}
-          factor={4}
-          saturation={0}
-          fade
-          speed={1}
-        />
-        <ambientLight intensity={0.1} />
+      <div className="absolute w-full p-3 lg:py-3 lg:pl-12 text-4xl text-white font-serif font bold ">
+        <h1>Witch.</h1>
+      </div>
+      <Loader />
+      <div className="cont w-full h-full bg-slate-900 flex justify-center items-center p-20 lg:p-30">
+        <div className="w-full h-full rounded-xl overflow-hidden">
+          <Canvas
+            resize={{ polyfill: false }}
+            shadows
+            gl={{ preserveDrawingBuffer: true }}
+            camera={{ position: [-6.31, 4.6, -16], fov: 75 }}
+          >
+            <color attach="background" args={[0x000]} />
 
-        <directionalLight
-          color="yellow"
-          intensity={0.8}
-          position={[2, 40, -1]}
-          castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
-          shadow-camera-far={50}
-          shadow-camera-left={-10}
-          shadow-camera-right={10}
-          shadow-camera-top={10}
-          shadow-camera-bottom={-10}
-        />
+            <fog attach="fog" args={[0x874ccc, 5, 60]} />
+            <CameraControls ref={cameraRef} />
+            <CameraLogger event="mousedown" />
+            <Stars
+              radius={100}
+              depth={50}
+              count={5000}
+              factor={4}
+              saturation={0}
+              fade
+              speed={1}
+            />
+            <ambientLight intensity={0.1} />
 
-        {/* The scene i want is like this */}
-        <Experience />
-
-        {/* Below is the TheatreJs Scene */}
-
-        {/* <ScrollControls pages={5} damping={0.5}>
-          <SheetProvider sheet={sheet}>
-            <Scene />
-          </SheetProvider>
-        </ScrollControls> */}
-        <Environment preset="night" />
-      </Canvas>
+            <directionalLight
+              color="yellow"
+              intensity={0.8}
+              position={[2, 40, -1]}
+              castShadow
+              shadow-mapSize-width={1024}
+              shadow-mapSize-height={1024}
+              shadow-camera-far={50}
+              shadow-camera-left={-10}
+              shadow-camera-right={10}
+              shadow-camera-top={10}
+              shadow-camera-bottom={-10}
+            />
+            <Text
+              fontSize={1}
+              position={[0, 5.6, -14]}
+              rotation={[0, 0.6, 0]}
+              onClick={handleClick}
+            >
+              X
+            </Text>
+            <Experience />
+            <Suspense fallback={null}>
+              <Environment preset="night" />
+            </Suspense>
+          </Canvas>
+        </div>
+      </div>
     </>
   );
 }
 
 export default App;
-
-function Scene() {
-  const sheet = useCurrentSheet();
-  const scroll = useScroll();
-
-  useFrame(() => {
-    const sequenceLength = val(sheet.sequence.pointer.length);
-
-    sheet.sequence.position = scroll.offset * sequenceLength;
-  });
-
-  return (
-    <>
-      <Model position={[0, 0, 0]} />
-      <PerspectiveCamera
-        theatreKey="Camera"
-        makeDefault
-        position={[0, 0, 0]}
-        fov={75}
-        near={0.1}
-        far={10000}
-      />
-    </>
-  );
-}
