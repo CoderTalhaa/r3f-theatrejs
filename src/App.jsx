@@ -14,7 +14,7 @@ import gsap from "gsap";
 import * as THREE from "three";
 
 function App() {
-  const [click, setClick] = useState(false);
+  const [click, setClick] = useState(null);
   const cameraRef = useRef();
 
   useGSAP(() => {
@@ -39,7 +39,8 @@ function App() {
         targetPosition.z,
         true
       );
-    } else {
+    } 
+    else if (cameraRef.current && cameraRef.current.setLookAt) {
       cameraRef.current.setLookAt(-6.18, 4.6, -16, 0, 0, 0, true);
     }
   }, [click]);
